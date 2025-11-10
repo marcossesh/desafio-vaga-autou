@@ -122,10 +122,6 @@ class EmailClassifier:
             raise
 
     def _classify_by_keywords(self, email_text: str) -> tuple:
-        """
-        Classifica usando análise de palavras-chave
-        Retorna: (categoria, confiança)
-        """
         
         email_lower = email_text.lower()
         
@@ -148,7 +144,6 @@ class EmailClassifier:
         return categoria, confianca
 
     def generate_response(self, categoria: str, email_text: str = "") -> str:
-        """Gera uma resposta automática baseada na categoria"""
         
         if categoria not in self.templates:
             categoria = "Improdutivo"

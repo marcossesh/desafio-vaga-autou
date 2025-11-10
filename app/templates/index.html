@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Classificador de Emails - AutoU</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/app/static/css/style.css">
 </head>
 <body>
     <div class="container">
@@ -19,22 +19,37 @@
                     <h2>Envie seu Email</h2>
                     
                     <form id="emailForm">
-                        <div class="form-group">
-                            <label for="emailText">Digite ou cole o email aqui:</label>
-                            <textarea 
-                                id="emailText" 
-                                name="emailText" 
-                                placeholder="Cole o conteúdo do email aqui..."
-                                rows="8"
-                            ></textarea>
+                        <div class="tabs">
+                            <button type="button" class="tab-button active" id="tabText" data-tab="text">
+                                Digitar ou Colar Texto
+                            </button>
+                            <button type="button" class="tab-button" id="tabUpload" data-tab="upload">
+                                Upload de Arquivo
+                            </button>
                         </div>
 
+                        <div class="tab-content active" id="textTab">
+                            <div class="form-group">
+                                <label for="emailText">Digite ou cole o email aqui:</label>
+                                <textarea id="emailText"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="uploadTab">
+                            <div class="form-group">
+                                <label for="fileInput">Selecione ou arraste um arquivo:</label>
+                                <div class="file-upload-area" id="fileUploadArea">
+                                    <input type="file" id="fileInput" accept=".txt,.pdf">
+                                    <p>📁 Clique aqui ou arraste um arquivo (.txt ou .pdf)</p>
+                                </div>
+                                <div id="fileName"></div>
+                            </div>
+                        </div>
+                        
                         <button type="submit" class="btn btn-primary">
                             Classificar Email
                         </button>
-                    </form>
-
-                    <div class="examples">
+                    </form> <div class="examples">
                         <p>Quer testar? Use um exemplo:</p>
                         <div class="example-buttons">
                             <button class="btn btn-example" id="exampleProductive">
@@ -45,8 +60,7 @@
                             </button>
                         </div>
                     </div>
-                </div>
-            </section>
+                </div> </section>
 
             <section class="results-section" id="resultsSection" style="display: none;">
                 <div class="card">
