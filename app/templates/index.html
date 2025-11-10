@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classificador de Emails - AutoU</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Classificador de Emails</h1>
+            <p class="subtitle">Classifique automaticamente se seus emails são produtivos ou improdutivos</p>
+        </header>
+
+        <main class="main">
+            <section class="form-section">
+                <div class="card">
+                    <h2>Envie seu Email</h2>
+                    
+                    <form id="emailForm">
+                        <div class="form-group">
+                            <label for="emailText">Digite ou cole o email aqui:</label>
+                            <textarea 
+                                id="emailText" 
+                                name="emailText" 
+                                placeholder="Cole o conteúdo do email aqui..."
+                                rows="8"
+                            ></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            Classificar Email
+                        </button>
+                    </form>
+
+                    <div class="examples">
+                        <p>Quer testar? Use um exemplo:</p>
+                        <div class="example-buttons">
+                            <button class="btn btn-example" id="exampleProductive">
+                                Exemplo Produtivo
+                            </button>
+                            <button class="btn btn-example" id="exampleUnproductive">
+                                Exemplo Improdutivo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="card">
+                    <h2>Resultado da Classificação</h2>
+                    
+                    <div class="result-item">
+                        <label>Categoria:</label>
+                        <div class="category-badge" id="categoryBadge">
+                            <span id="categoryText"></span>
+                            <span class="confidence" id="confidenceText"></span>
+                        </div>
+                    </div>
+
+                    <div class="result-item">
+                        <label>Email Analisado:</label>
+                        <div class="email-preview" id="emailPreview"></div>
+                    </div>
+
+                    <div class="result-item">
+                        <label>Resposta Sugerida:</label>
+                        <div class="response-box" id="responseBox"></div>
+                        <button class="btn btn-copy" id="copyBtn">
+                            Copiar Resposta
+                        </button>
+                    </div>
+
+                    <button class="btn btn-secondary" id="newClassificationBtn">
+                        Fazer Nova Classificação
+                    </button>
+                </div>
+            </section>
+
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analisando email...</p>
+            </div>
+
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+        </main>
+
+        <footer class="footer">
+            <p>Desafio AutoU - Email Classifier AI</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

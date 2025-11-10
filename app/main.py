@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
-from classifier import EmailClassifier
+from app.classifier import EmailClassifier
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -23,12 +23,24 @@ app.add_middleware(
 #Configurar pasta de arquivos estáticos (HTML, CSS, JS)
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+TEMPLATES_DIR = BASE_DIR.parent / "templates"
+
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 classifier = EmailClassifier()
 
 @app.get("/")
 async def root():
+    index_path = TEMPLATES_DIR / "index.html"
+    if index_path.exists():
+        try:
+            with open(index_path, "r", encoding="utf-8") as f:
+                return HTMLResponse(content=f.read())
+        except Exception as e:
+            logger.error(f"Erro ao ler index.html: {e}")
+    
+    # fallback se templates/index.html não existir
     return {"message": "Email Classifier AI está online!"}
 
 @app.get("/health")
@@ -55,14 +67,3 @@ async def classify_email(email_text: str = Form(None)):
     except Exception as e:
         logger.error(f"Erro ao classificar email: {e}")
         return JSONResponse(status_code=500, content={"error": "Erro interno do servidor ao classificar o email."})
-
-@app.get("/")
-async def root():
-    try:
-        with open(BASE_DIR / "frontend" / "index.html", "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    except FileNotFoundError:
-        return HTMLResponse(
-            content="<h1> index.html não encontrado</h1>",
-            status_code=404
-        )
