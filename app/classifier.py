@@ -68,7 +68,7 @@ class EmailClassifier:
             raise
 
     def generate_response(self, categoria: str, email_text: str = "")-> str:
-        
+
         if categoria not in self.templates:
             logger.warning(f"Categoria desconhecida: {categoria}. Usando 'Improdutivo' como padrão.")
             categoria = "Improdutivo"
