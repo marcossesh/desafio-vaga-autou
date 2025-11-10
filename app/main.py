@@ -22,7 +22,9 @@ app.add_middleware(
 
 #Configurar pasta de arquivos estáticos (HTML, CSS, JS)
 BASE_DIR = Path(__file__).resolve().parent
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "frontend")), name="static")
+STATIC_DIR = BASE_DIR / "static"
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
 classifier = EmailClassifier()
 
 @app.get("/")

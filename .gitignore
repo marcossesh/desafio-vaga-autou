@@ -1,20 +1,23 @@
-.env              # Variáveis de ambiente
-*.key             # Chaves de criptografia
-*_secret.py       # Arquivos com secrets
-*.pem, *.cert     # Certificados
+.env
+*.key
+*_secret.py
+*.pem
+*.cert
 
-__pycache__/      # Cache Python
-*.pyc, *.pyo      # Bytecode compilado
-venv/, env/       # Ambientes virtuais
-*.egg-info/       # Metadados de pacotes
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+*.egg-info/
 
-.vscode/          # VS Code
-.idea/            # PyCharm
-*.swp             # Vim
+.vscode/
+.idea/
+*.swp
 
-models/           # Modelos Hugging Face (GBs!)
-*.bin             # Binários de modelos
-.cache/           # Cache do transformers
+models/
+*.bin
+.cache/
 
-uploads/          # Emails enviados
-temp/             # Arquivos temporários
+uploads/
+temp/
