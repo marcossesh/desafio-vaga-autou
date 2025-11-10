@@ -1,5 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
@@ -29,10 +29,14 @@ classifier = EmailClassifier()
 async def root():
     return {"message": "Email Classifier AI está online!"}
 
-@app.post("/classify-email/")
+@app.get("/health")
+async def health_check():
+    return {"status": "online", "version": "1.0"}
+
+@app.post("/classify")
 async def classify_email(email_text: str = Form(None)):
-    if not email_text:
-        return JSONResponse(status_code=400, content={"error": "O campo 'email_text' é obrigatório."})
+    if not email_text or len(email_text.strip()) < 10:
+        return JSONResponse(status_code=400, content={"error": "O campo 'email_text' é obrigatório e deve ter pelo menos 10 caracteres."})
     
     try:
         classification_result = classifier.classify(email_text)
@@ -49,6 +53,14 @@ async def classify_email(email_text: str = Form(None)):
     except Exception as e:
         logger.error(f"Erro ao classificar email: {e}")
         return JSONResponse(status_code=500, content={"error": "Erro interno do servidor ao classificar o email."})
-    
+
 @app.get("/")
-async 
+async def root():
+    try:
+        with open(BASE_DIR / "frontend" / "index.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        return HTMLResponse(
+            content="<h1> index.html não encontrado</h1>",
+            status_code=404
+        )
