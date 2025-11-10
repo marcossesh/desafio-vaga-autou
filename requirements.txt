@@ -1,0 +1,27 @@
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# AI/ML
+transformers==4.35.2
+torch==2.1.1
+sentencepiece==0.1.99
+accelerate==0.25.0
+
+# NLP
+nltk==3.8.1
+spacy==3.7.2
+
+# File Processing
+PyPDF2==3.0.1
+python-docx==1.1.0
+
+# Template Engine
+jinja2==3.1.2
+
+# Environment
+python-dotenv==1.0.0
+
+# Utilities
+aiofiles==23.2.1
