@@ -209,6 +209,16 @@ async function classifyViaText(text) {
 }
 
 async function classifyViaFile(file) {
+    const fileContent = await readFileContent(file);
+    
+    if (fileContent.length > 5000) {
+        throw new Error(`O arquivo excede o limite de 5000 caracteres. Seu arquivo possui ${fileContent.length} caracteres.`);
+    }
+    
+    if (fileContent.length < 10) {
+        throw new Error('O arquivo é muito curto. Forneça um arquivo com pelo menos 10 caracteres.');
+    }
+    
     const formData = new FormData();
     formData.append('file', file);
 
@@ -225,6 +235,22 @@ async function classifyViaFile(file) {
     const result = await response.json();
     const preview = result.email_preview;
     displayResults(result, preview);
+}
+
+function readFileContent(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (event) => {
+            resolve(event.target.result);
+        };
+        
+        reader.onerror = (error) => {
+            reject(new Error('Erro ao ler o arquivo: ' + error));
+        };
+        
+        reader.readAsText(file);
+    });
 }
 
 function displayResults(result, emailPreview) {
