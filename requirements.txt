@@ -5,9 +5,14 @@ python-multipart==0.0.6
 
 # AI/ML
 transformers==4.35.2
-torch==2.1.1
 sentencepiece==0.1.99
 accelerate==0.25.0
+
+# PyTorch CPU version
+--index-url https://download.pytorch.org/whl/cpu
+torch==2.1.0
+torchvision==0.16.0
+torchaudio==2.1.0
 
 # NLP
 nltk==3.8.1
