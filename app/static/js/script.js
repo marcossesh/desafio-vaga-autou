@@ -162,6 +162,11 @@ async function handleFormSubmit(event) {
                 showError('O email é muito curto. Forneça um email com pelo menos 10 caracteres.');
                 return;
             }
+            
+            if (text.length > 5000) {
+                showError(`O email excede o limite de 5000 caracteres. Seu email possui ${text.length} caracteres.`);
+                return;
+            }
 
             showLoading();
             await classifyViaText(text);

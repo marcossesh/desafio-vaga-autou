@@ -24,7 +24,7 @@ class EmailClassifier:
                 self.classifier = pipeline(
                     "zero-shot-classification",
                     model="facebook/bart-large-mnli",
-                    device=-1 #Você pode alterar para 0 se quiser usar GPU
+                    device=-1
                 )
 
                 self.generator = pipeline(
@@ -40,22 +40,53 @@ class EmailClassifier:
                 raise
 
         self.productive_keywords = [
-            'solicitação', 'solicitou', 'preciso', 'precisa', 'problema', 'erro',
-            'help', 'ajuda', 'suporte', 'técnico', 'urgente', 'status', 'atualização',
-            'dúvida', 'pergunta', 'requisição', 'pendente', 'prazo', 'informação',
-            'dados', 'acesso', 'bug', 'ticket', 'caso', 'número', 'protocolo',
-            'andamento', 'verificar', 'checar', 'confirmar', 'retorno', 'feedback',
+            # Solicitações de status/ação
+            'solicitação', 'solicitou', 'solicito', 'preciso', 'precisa', 'necessito',
+            'problema', 'erro', 'bug', 'falha', 'não funciona', 'travou',
+            'help', 'ajuda', 'suporte', 'técnico', 'urgente', 'prioridade',
+            'status', 'atualização', 'andamento', 'progresso',
+            'dúvida', 'pergunta', 'questão', 'informação', 'esclarecimento',
+            'requisição', 'pendente', 'prazo', 'data', 'prazos',
+            'dados', 'acesso', 'senha', 'login', 'autenticação', 'permissão',
+            'ticket', 'caso', 'número', 'protocolo', 'id',
+            'verificar', 'checar', 'confirmar', 'retorno', 'feedback',
             'alteração', 'mudança', 'atualizar', 'novo', 'criar', 'adicionar',
-            'remover', 'deletar', 'modificar', 'alterar', 'corrigir', 'reportar',
-            'relatar', 'comunicar', 'notificar'
+            'remover', 'deletar', 'modificar', 'corrigir', 'conserto',
+            'reportar', 'relatar', 'comunicar', 'notificar', 'informar',
+            'quando', 'como', 'por quê', 'qual', 'quem', 'onde',
+            'transferência', 'pagamento', 'fatura', 'conta', 'saldo',
+            'empréstimo', 'cartão', 'limite', 'taxa', 'juros', 'comissão', 'código',
+            'desbloquear', 'bloquear', 'cancelar', 'suspender', 'reativar', 'reativação'
         ]
         
         self.unproductive_keywords = [
-            'feliz', 'feliz natal', 'feliz ano novo', 'parabéns', 'aniversário',
-            'obrigado', 'agradecimento', 'abraço', 'abraços', 'saudações',
-            'cumprimento', 'festa', 'celebração', 'feriado', 'férias',
-            'boa sorte', 'sucesso', 'tudo bem', 'como vai', 'tudo certo', 
-            'ótimo', 'legal', 'massa', 'show', 'bacana', 'incrível', 'maravilhoso'
+            # Felicitações/Cumprimentos
+            'feliz', 'feliz natal', 'feliz ano novo', 'happy', 'merry christmas',
+            'parabéns', 'aniversário', 'aniversariante', 'congratulations',
+            'obrigado', 'agradecimento', 'agradeço', 'grato', 'gratidão', 'thanks',
+            'abraço', 'abraços', 'beijo', 'beijos', 'hug',
+            'saudações', 'cumprimento', 'olá', 'oi', 'hey', 'hello',
+            
+            # Lazer/Entretenimento
+            'festa', 'celebração', 'happy hour', 'churrasco', 'confraternização',
+            'feriado', 'férias', 'descanso', 'folga', 'viagem', 'turismo',
+            'tv', 'cinema', 'filme', 'série', 'jogo', 'diversão', 'entreterimento',
+            'chaves', 'comédia', 'humorístico', 'brincadeira', 'piada', 'joke',
+            
+            # Expressões genéricas
+            'boa sorte', 'sucesso', 'tudo bem', 'como vai', 'tudo certo',
+            'ótimo', 'legal', 'massa', 'show', 'bacana', 'incrível', 'maravilhoso',
+            'adorei', 'amei', 'fantástico', 'perfeito', 'sensacional',
+            
+            # Compartilhamentos sem ação
+            'compartilho', 'compartilhar', 'forward', 'fwd', 'encaminho',
+            'achei legal', 'recomendo', 'dá uma olhada', 'veja', 'confira',
+            
+            # Documentos/Ofertas externas (não são solicitações de suporte)
+            'chave', 'promocode', 'voucher', 'cupom', 'desconto'
+
+            #Palavras de baixo calão
+            'merda', 'porra', 'caralho', 'bosta', 'puta'
         ]
 
         self.templates = {
@@ -65,7 +96,9 @@ class EmailClassifier:
                 "Ótimo, vamos verificar isso e retornaremos em breve.",
                 "Recebido! Vamos priorizando sua solicitação.",
                 "Agradecemos os detalhes. Estamos investigando isso agora.",
-                "Perfeito! Vamos avaliar sua solicitação e responder em breve."
+                "Perfeito! Vamos avaliar sua solicitação e responder em breve.",
+                "Entendido! Nossa equipe está verificando esse ponto agora.",
+                "Muito bem, vamos trabalhar nessa demanda para você."
             ],
             "Improdutivo": [
                 "Muito obrigado pelo seu contato! Apreciamos.",
@@ -73,7 +106,9 @@ class EmailClassifier:
                 "Obrigado! Voltaremos em breve com atualizações.",
                 "Obrigado pelo carinho! Estamos aqui para ajudar.",
                 "Agradeço sinceramente! Tenha um ótimo dia!",
-                "Muito legal! Obrigado pelo carinho com a gente!"
+                "Muito legal! Obrigado pelo carinho com a gente!",
+                "Obrigado pela atenção! Um grande abraço!",
+                "Agradecemos muito! Continue contando com a gente!"
             ]
         }
 
@@ -81,29 +116,36 @@ class EmailClassifier:
         if not email_text or len(email_text.strip()) < 5:
             raise ValueError("O texto do email é muito curto ou vazio para análise.")
         
+        if len(email_text.strip()) > 5000:
+            raise ValueError("O texto do email excede o limite de 5000 caracteres.")
+        
         try:
-            
             email_truncado = email_text[:512]
             
             result_ia = self.classifier(
                 email_truncado,
                 candidate_labels=["Produtivo", "Improdutivo"],
-                hypothesis_template="Este email é {}."
+                hypothesis_template="Este email de suporte é uma solicitação que requer ação ou resposta específica do time de suporte: {}."
             )
 
             categoria_ia = result_ia['labels'][0]
             confianca_ia = round(result_ia['scores'][0] * 100, 2)
             
             logger.info(f"IA: {categoria_ia} ({confianca_ia}%)")
+            logger.info(f"Labels: {result_ia['labels']}")
+            logger.info(f"Scores: {[round(s * 100, 2) for s in result_ia['scores']]}")
                         
             categoria_keyword, confianca_keyword = self._classify_by_keywords(email_text)
             
             logger.info(f"Keywords: {categoria_keyword} ({confianca_keyword}%)")
             
-            if confianca_ia < 60:
+            # Lógica Nova de decisão:
+            # Se a IA tem baixa confiança (<70%), usa keywords como fallback
+            if confianca_ia < 70:
                 categoria_final = categoria_keyword
                 confianca_final = confianca_keyword
-                metodo = "keyword"
+                metodo = "keyword (IA com baixa confiança)"
+                logger.info(f"Usando keywords porque IA tem {confianca_ia}% < 70%")
             else:
                 categoria_final = categoria_ia
                 confianca_final = confianca_ia
@@ -123,7 +165,6 @@ class EmailClassifier:
             raise
 
     def _classify_by_keywords(self, email_text: str) -> tuple:
-        
         email_lower = email_text.lower()
         
         productive_count = sum(1 for kw in self.productive_keywords if kw in email_lower)
@@ -134,18 +175,23 @@ class EmailClassifier:
         
         if productive_count > unproductive_count:
             categoria = "Produtivo"
-            confianca = min(60 + (productive_count * 15), 95)
+            confianca = min(60 + (productive_count * 10), 95)
         elif unproductive_count > productive_count:
             categoria = "Improdutivo"
-            confianca = min(60 + (unproductive_count * 15), 95)
+            confianca = min(60 + (unproductive_count * 10), 95)
         else:
-            categoria = "Produtivo"
+            # MUDANÇA IMPORTANTE: Quando há empate, classifica como IMPRODUTIVO
+            # (padrão conservador para não perder solicitações reais)
+            # Mas se houver mais produtivas, assume produtivo.
+            if productive_count > 0:
+                categoria = "Produtivo"
+            else:
+                categoria = "Improdutivo"
             confianca = 50
         
         return categoria, confianca
 
     def generate_response(self, categoria: str, email_text: str = "") -> str:
-        
         if categoria not in self.templates:
             categoria = "Improdutivo"
         
