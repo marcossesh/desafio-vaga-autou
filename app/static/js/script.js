@@ -189,9 +189,9 @@ async function classifyViaText(text) {
     const formData = new FormData();
     formData.append('email_text', text);
 
-    const response = await fetch('http://localhost:8000/classify', {
-    method: 'POST',
-    body: formData
+    const response = await fetch('/classify', {
+        method: 'POST',
+        body: formData
     });
 
     if (!response.ok) {
@@ -207,7 +207,7 @@ async function classifyViaFile(file) {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch('http://localhost:8000/classify', {
+    const response = await fetch('/classify', {
         method: 'POST',
         body: formData
     });

@@ -44,7 +44,7 @@ logger.info("Classificador carregado com sucesso!")
 @app.get("/")
 async def root():
     try:
-        with open(TEMPLATES_DIR / "index.html", "r", encoding="utf-8") as f:
+        with open(STATIC_DIR / "index.html", "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read())
     except FileNotFoundError as e:
         logger.error(f"index.html não encontrado! Erro: {str(e)}")
