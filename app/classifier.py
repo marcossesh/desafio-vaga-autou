@@ -54,7 +54,8 @@ class EmailClassifier:
             'feliz', 'feliz natal', 'feliz ano novo', 'parabéns', 'aniversário',
             'obrigado', 'agradecimento', 'abraço', 'abraços', 'saudações',
             'cumprimento', 'festa', 'celebração', 'feriado', 'férias',
-            'boa sorte', 'sucesso', 'tudo bem', 'como vai', 'tudo certo'
+            'boa sorte', 'sucesso', 'tudo bem', 'como vai', 'tudo certo', 
+            'ótimo', 'legal', 'massa', 'show', 'bacana', 'incrível', 'maravilhoso'
         ]
 
         self.templates = {
