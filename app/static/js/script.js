@@ -184,7 +184,7 @@ async function handleFormSubmit(event) {
 
     } catch (error) {
         console.error('Erro:', error);
-        showError('Erro ao classificar o email. Tente novamente.');
+        showError(error.message || 'Erro ao classificar o email. Tente novamente.');
     } finally {
         hideLoading();
     }
