@@ -30,8 +30,12 @@ app.add_middleware(
 
 
 BASE_DIR = Path(__file__).resolve().parent
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+STATIC_DIR = BASE_DIR / "app" / "static"
+TEMPLATES_DIR = BASE_DIR / "app" / "templates"
 
+# Montar static files apenas se existir
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 classifier = EmailClassifier()
 logger.info("Classificador carregado com sucesso!")
@@ -40,7 +44,7 @@ logger.info("Classificador carregado com sucesso!")
 @app.get("/")
 async def root():
     try:
-        with open(BASE_DIR / "static" / "index.html", "r", encoding="utf-8") as f:
+        with open(TEMPLATES_DIR / "index.html", "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read())
     except FileNotFoundError as e:
         logger.error(f"index.html não encontrado! Erro: {str(e)}")
@@ -219,7 +223,7 @@ if __name__ == "__main__":
     logger.info("Documentação: http://localhost:8000/docs")
     
     uvicorn.run(
-        app,
+        "main:app",
         host="0.0.0.0",
         port=8000,
         reload=True
