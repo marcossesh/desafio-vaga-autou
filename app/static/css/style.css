@@ -169,13 +169,10 @@ textarea::placeholder {
 }
 
 .file-upload-area {
-    border: 2px dashed var(--border);
-    border-radius: 8px;
-    padding: 40px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background-color: var(--light);
+    width: 100%;
+    padding: 0;
+    border: none;
+    background-color: transparent;
 }
 
 .file-upload-area:hover {
@@ -217,10 +214,17 @@ textarea::placeholder {
     cursor: pointer;
     border-radius: 8px;
     transition: all 0.3s;
+    font-family: inherit;
 }
 
 .file-button:hover {
     background-color: #e0f0ff;
+    border-color: #004499;
+    border-width: 2px;
+}
+
+.file-button:focus {
+    outline: none;
     border-color: #004499;
 }
 
@@ -401,13 +405,35 @@ textarea::placeholder {
 }
 
 .error-message {
-    background: #fee2e2;
-    color: #991b1b;
-    padding: 15px 20px;
+    background-color: #fecaca;
+    color: #7f1d1d;
+    border-left: 4px solid #dc2626;
+    padding: 16px;
     border-radius: 8px;
-    border-left: 4px solid var(--danger-color);
-    margin-bottom: 20px;
+    margin: 0 0 24px 0;
+    font-size: 14px;
+    font-weight: 500;
+    display: none;
+    animation: slideIn 0.3s ease-in-out;
 }
+
+
+
+.error-message.show {
+    display: block;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 
 .footer {
     text-align: center;
@@ -492,5 +518,28 @@ textarea::placeholder {
 
     .file-upload-area p {
         font-size: 1rem;
+    }
+}
+
+.file-success {
+    display: block !important;
+    background-color: #dcfce7;
+    color: #166534;
+    border-left: 4px solid #22c55e;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-top: 12px;
+    font-weight: 500;
+    animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

@@ -101,6 +101,7 @@ function handleFileSelection(event) {
 
     if (!file) {
         fileName.textContent = '';
+        fileName.className = '';
         selectedFile = null;
         return;
     }
@@ -110,6 +111,7 @@ function handleFileSelection(event) {
         fileInput.value = '';
         selectedFile = null;
         fileName.textContent = '';
+        fileName.className = '';
         return;
     }
 
@@ -118,12 +120,18 @@ function handleFileSelection(event) {
         fileInput.value = '';
         selectedFile = null;
         fileName.textContent = '';
+        fileName.className = '';
         return;
     }
 
     selectedFile = file;
     hideError();
-    fileName.textContent = `✓ Arquivo selecionado: ${file.name} (${formatFileSize(file.size)})`;
+    
+    fileName.innerHTML = `
+        <div class="file-success">
+            ✅ Arquivo enviado: <strong>${file.name}</strong> (${formatFileSize(file.size)})
+        </div>
+    `;
 }
 
 function formatFileSize(bytes) {
