@@ -93,7 +93,7 @@ async def classify_email(
                 content = await file.read()
                 
                 if file_ext == '.txt':
-                    email_text = content.decode('utf-8', errors='ignore')
+                    email_text = content.decode('utf-8', errors='replace')
                     logger.info(f"Arquivo TXT lido com sucesso ({len(email_text)} caracteres)")
                 
                 elif file_ext == '.pdf':
