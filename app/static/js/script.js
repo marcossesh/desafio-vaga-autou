@@ -210,7 +210,7 @@ async function classifyViaFile(file) {
     }
 
     const result = await response.json();
-    const preview = file.name;
+    const preview = result.email_preview;
     displayResults(result, preview);
 }
 
@@ -234,8 +234,8 @@ function displayResults(result, emailPreview) {
     categoryText.textContent = result.categoria;
     confidenceText.textContent = `${confianca}% de confiança`;
 
-    const preview = typeof emailPreview === 'string' && emailPreview.length > 100
-        ? emailPreview.substring(0, 100) + '...'
+    const preview = typeof emailPreview === 'string' && emailPreview.length > 150
+        ? emailPreview.substring(0, 150) + '...'
         : emailPreview;
     document.getElementById('emailPreview').textContent = preview;
 

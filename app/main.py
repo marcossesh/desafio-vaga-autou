@@ -159,7 +159,7 @@ async def classify_email(
             "categoria": categoria,
             "confianca": confianca,
             "resposta_automatica": resposta,
-            "email_preview": email_text[:100] + "..." if len(email_text) > 100 else email_text
+            "email_preview": email_text[:200] + "..." if len(email_text) > 200 else email_text
         }
         
     except ValueError as ve:

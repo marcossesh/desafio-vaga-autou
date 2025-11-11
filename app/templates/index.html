@@ -37,11 +37,16 @@
 
                         <div class="tab-content" id="uploadTab">
                             <div class="form-group">
-                                <label for="fileInput">Selecione ou arraste um arquivo:</label>
+                                <label>Selecione ou arraste um arquivo:</label>
+                                
+                                <input type="file" id="fileInput" accept=".txt,.pdf" style="display: none;">
+                                
                                 <div class="file-upload-area" id="fileUploadArea">
-                                    <input type="file" id="fileInput" accept=".txt,.pdf">
-                                    <p>📁 Clique aqui ou arraste um arquivo (.txt ou .pdf)</p>
+                                    <button type="button" onclick="document.getElementById('fileInput').click()" class="file-button">
+                                        📁 Clique aqui ou arraste um arquivo (.txt ou .pdf)
+                                    </button>
                                 </div>
+                                
                                 <div id="fileName"></div>
                             </div>
                         </div>

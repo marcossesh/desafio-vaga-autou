@@ -207,6 +207,23 @@ textarea::placeholder {
     display: block;
 }
 
+.file-button {
+    width: 100%;
+    padding: 40px 20px;
+    border: 2px dashed #0066cc;
+    background-color: #f0f7ff;
+    color: #0066cc;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.file-button:hover {
+    background-color: #e0f0ff;
+    border-color: #004499;
+}
+
 .btn {
     padding: 12px 24px;
     border: none;
