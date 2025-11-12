@@ -1,15 +1,9 @@
-# Web Framework
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
-
-# AI/ML
 transformers==4.37.2
-
-# File Processing
-PyPDF2==4.0.1
-
-# Utilities
+# Usar versão compatível encontrada no buildpack
+PyPDF2==3.0.1
 python-dotenv==1.0.0
 pydantic==2.5.3
 nltk==3.8.1

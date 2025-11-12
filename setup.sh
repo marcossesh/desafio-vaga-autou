@@ -25,7 +25,7 @@ echo ""
 
 echo "Step 4: Installing NLP dependencies..."
 pip install transformers==4.37.2
-pip install PyPDF2==4.0.1
+pip install PyPDF2==3.0.1
 echo "✓ NLP dependencies installed"
 echo ""
 
