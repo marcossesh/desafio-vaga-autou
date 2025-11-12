@@ -6,5 +6,5 @@ python-dotenv==1.0.0
 requests==2.31.0
 
 # Google Generative / Vertex AI clients (Gemini)
-google-generativeai==0.2.0
+google-genai>=0.6.0
 google-cloud-aiplatform==1.28.0

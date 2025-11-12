@@ -6,63 +6,35 @@ from typing import Dict, Optional
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 class EmailClassifier:
     def __init__(self):
         self.client = None
         self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.ia_api_available = False
-        self.genai = None
-
+        
         try:
             from google import genai
-            self.genai = genai
             logger.info("google.genai importado com sucesso.")
-        except ImportError:
-            try:
-                import google.generativeai as genai
-                self.genai = genai
-                logger.info("google.generativeai importado com sucesso (legacy).")
-            except Exception as e:
-                logger.warning("google.generativeai não disponível: %s", e)
-                self.genai = None
-
-        google_api_key = os.getenv("GOOGLE_API_KEY")
-        if self.genai and google_api_key:
-            try:
-
-                if hasattr(self.genai, "Client"):
-                    try:
-                        self.client = self.genai.Client(api_key=google_api_key)
-                        logger.info("google.genai Client inicializado com API key.")
-                        self.ia_api_available = True
-                    except Exception as e:
-                        logger.debug("Falha ao inicializar genai.Client: %s", e)
-                        self.client = None
-
-                elif hasattr(self.genai, "configure"):
-                    try:
-                        self.genai.configure(api_key=google_api_key)
-                        logger.info("google.generativeai configurado com a chave de API (legacy).")
-                        self.client = self.genai
-                        self.ia_api_available = True
-                    except Exception as e:
-                        logger.debug("Falha ao configurar genai.configure: %s", e)
-                        self.client = None
-
-                if self.client is None:
-                    self.ia_api_available = False
-
-            except Exception as e:
-                logger.exception("Falha ao configurar google.generativeai: %s", e)
+            
+            google_api_key = os.getenv("GOOGLE_API_KEY")
+            if not google_api_key:
+                logger.warning("GOOGLE_API_KEY não encontrada. Usando fallback por keywords.")
                 self.ia_api_available = False
-        else:
-            if not self.genai:
-                logger.warning("google.generativeai não encontrado. Usando fallback por keywords.")
-            elif not google_api_key:
-                logger.warning("GOOGLE_API_KEY não encontrada. google.generativeai não será usado (fallback por keywords).")
+            else:
+                try:
+                    self.client = genai.Client(api_key=google_api_key)
+                    logger.info("google.genai Client inicializado com API key.")
+                    self.ia_api_available = True
+                except Exception as e:
+                    logger.error("Falha ao inicializar genai.Client: %s", e)
+                    self.ia_api_available = False
+                    
+        except ImportError as e:
+            logger.error("google-genai não instalado. Instale com: pip install google-genai")
+            logger.error("Detalhes: %s", e)
             self.ia_api_available = False
-
+        
+        # Keywords para fallback
         self.productive_keywords = [
             'solicitação', 'solicitou', 'solicito', 'preciso', 'precisa', 'necessito',
             'problema', 'erro', 'bug', 'falha', 'não funciona', 'travou',
@@ -81,7 +53,7 @@ class EmailClassifier:
             'empréstimo', 'cartão', 'limite', 'taxa', 'juros', 'comissão', 'código',
             'desbloquear', 'bloquear', 'cancelar', 'suspender', 'reativar', 'reativação'
         ]
-
+        
         self.unproductive_keywords = [
             'feliz', 'feliz natal', 'feliz ano novo', 'happy', 'merry christmas',
             'parabéns', 'aniversário', 'aniversariante', 'congratulations',
@@ -100,7 +72,7 @@ class EmailClassifier:
             'chave', 'promocode', 'voucher', 'cupom', 'desconto',
             'merda', 'porra', 'caralho', 'bosta', 'puta'
         ]
-
+        
         self.templates = {
             "Produtivo": [
                 "Obrigado por entrar em contato! Sua solicitação foi recebida e está sendo priorizada. Nossa equipe entrará em contato em breve.",
@@ -123,77 +95,40 @@ class EmailClassifier:
                 "Agradecemos sinceramente! Esperamos continuar servindo você com excelência."
             ]
         }
-
+    
     def _classify_via_api(self, email_text: str) -> Optional[Dict]:
         if not self.ia_api_available or not self.client:
             raise Exception("Cliente Gemini não inicializado.")
         
         prompt = f"""
-    Classifique o email abaixo em uma das duas categorias: 'Produtivo' ou 'Improdutivo'.
-    Produtivo: Requer uma ação, resposta técnica, solução de problema, ou tem caráter urgente.
-    Improdutivo: Cumprimentos, agradecimentos, mensagens sociais, ou não requer ação imediata do time técnico.
-    Responda APENAS com uma das duas palavras: Produtivo ou Improdutivo.
+Classifique o email abaixo em uma das duas categorias: 'Produtivo' ou 'Improdutivo'.
+Produtivo: Requer uma ação, resposta técnica, solução de problema, ou tem caráter urgente.
+Improdutivo: Cumprimentos, agradecimentos, mensagens sociais, ou não requer ação imediata do time técnico.
+Responda APENAS com uma das duas palavras: Produtivo ou Improdutivo.
 
-    EMAIL:
-    ---
-    {email_text}
-    ---
-    """
+EMAIL:
+---
+{email_text}
+---
+"""
         
         try:
             logger.info("Chamando Gemini API para classificação...")
-            resp = None
-            text = None
             
-            if hasattr(self.client, "models") and hasattr(self.client.models, "generate_content"):
-                try:
-                    resp = self.client.models.generate_content(
-                        model=self.model_name,
-                        contents=prompt
-                    )
-                    logger.debug("Chamada models.generate_content (nova API) executada com sucesso.")
-                except Exception as e:
-                    logger.debug("Nova API (google-genai) falhou: %s", e)
-                    resp = None
+            resp = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
             
-            # Tentativa 2: API legada com GenerativeModel
-            if resp is None and hasattr(self.genai, "GenerativeModel"):
-                try:
-                    model = self.genai.GenerativeModel(self.model_name)
-                    resp = model.generate_content(
-                        prompt,
-                        generation_config={"temperature": 0.0, "max_output_tokens": 10}
-                    )
-                    logger.debug("Chamada GenerativeModel.generate_content (API legada) executada com sucesso.")
-                except Exception as e:
-                    logger.debug("API legada GenerativeModel falhou: %s", e)
-                    resp = None
-            
-            # Tentativa 3: Método direto generate_content (caso seja configurada via configure())
-            if resp is None and hasattr(self.client, "generate_content"):
-                try:
-                    resp = self.client.generate_content(prompt)
-                    logger.debug("Chamada direta generate_content executada com sucesso.")
-                except Exception as e:
-                    logger.debug("Método direto generate_content falhou: %s", e)
-                    resp = None
-            
-            if resp is None:
-                logger.error("Cliente Gemini não expõe métodos conhecidos de geração ou todas chamadas falharam.")
-                return None
+            logger.debug("Chamada models.generate_content executada com sucesso.")
             
             try:
                 text = resp.text
             except Exception:
                 try:
-                    # Acesso alternativo para algumas versões da API
                     text = resp.candidates[0].content.parts[0].text
                 except Exception:
-                    try:
-                        if hasattr(resp, '_result'):
-                            text = resp._result.candidates[0].content.parts[0].text
-                    except Exception:
-                        text = None
+                    text = None
             
             if not text:
                 logger.warning("Resposta da API sem corpo textual.")
@@ -215,29 +150,31 @@ class EmailClassifier:
         except Exception as e:
             logger.exception("Erro na API do Gemini: %s", e)
             return None
-
+    
     def classify(self, email_text: str) -> Dict:
         if not email_text or len(email_text.strip()) < 5:
             raise ValueError("O texto do email é muito curto ou vazio para análise.")
-
+        
         if len(email_text.strip()) > 5000:
             raise ValueError("O texto do email excede o limite de 5000 caracteres.")
-
+        
         try:
             email_truncado = email_text[:512]
-
+            
             if self.ia_api_available:
                 try:
                     result_ia = self._classify_via_api(email_truncado)
                     if result_ia and result_ia.get('labels'):
                         scores = result_ia['scores']
                         labels = result_ia['labels']
+                        
                         if not scores or not labels or len(scores) != len(labels):
                             logger.warning("Resultado IA malformado: %s", result_ia)
                         else:
                             max_idx = int(scores.index(max(scores)))
                             categoria_ia = labels[max_idx]
                             confianca_ia = round(scores[max_idx] * 100, 2)
+                            
                             logger.info(f"IA (Gemini): {categoria_ia} ({confianca_ia}%)")
                             return {
                                 "categoria": categoria_ia,
@@ -250,9 +187,11 @@ class EmailClassifier:
                         logger.info("API da IA não retornou um resultado válido. Usando keywords como fallback.")
                 except Exception as e:
                     logger.warning(f"Erro na API de IA: {e}. Usando fallback com keywords.")
-
+            
+            # Fallback: classificação por keywords
             categoria_keyword, confianca_keyword = self._classify_by_keywords(email_text)
             logger.info(f"Usando Keywords: {categoria_keyword} ({confianca_keyword}%)")
+            
             return {
                 "categoria": categoria_keyword,
                 "confianca": confianca_keyword,
@@ -263,20 +202,20 @@ class EmailClassifier:
                 ],
                 "metodo": "keywords-fallback"
             }
-
+            
         except Exception as e:
             logger.error(f"Erro na classificação: {str(e)}")
             raise
-
+    
     def _classify_by_keywords(self, email_text: str) -> tuple:
         email_lower = email_text.lower()
-
+        
         productive_count = sum(1 for kw in self.productive_keywords if kw in email_lower)
         unproductive_count = sum(1 for kw in self.unproductive_keywords if kw in email_lower)
-
+        
         logger.info(f"   Palavras produtivas encontradas: {productive_count}")
         logger.info(f"   Palavras improdutivas encontradas: {unproductive_count}")
-
+        
         if productive_count > unproductive_count:
             categoria = "Produtivo"
             confianca = min(60 + (productive_count * 10), 95)
@@ -289,12 +228,12 @@ class EmailClassifier:
             else:
                 categoria = "Improdutivo"
             confianca = 50
-
+        
         return categoria, confianca
-
+    
     def generate_response(self, categoria: str, email_text: str = "") -> str:
         if categoria not in self.templates:
             categoria = "Improdutivo"
-
+        
         resposta = random.choice(self.templates[categoria])
         return resposta
