@@ -1,29 +1,41 @@
+#!/usr/bin/env python3
+#classify agora retorna 503 enquanto os modelos estiverem carregando
+# Usa PORT da env (para ambientes como DigitalOcean Apps / Render)
+
+import os
+import sys
+import io
+import re
+import html
+import logging
+import threading
+from pathlib import Path
+from io import BytesIO
+from typing import Optional
+
 from fastapi import FastAPI, Form, UploadFile, File
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-import logging
+
 import PyPDF2
-from io import BytesIO
-import io
-import html
-from urllib.parse import unquote
-from app.classifier import EmailClassifier
-import sys
-import re
+
+# Tente não importar EmailClassifier até carregar em background
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("email-classifier")
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+try:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+except Exception:
+    pass
+
 app = FastAPI(
     title="Classificador de Emails",
-    description="Sistema de classificação de emails com IA para o Desafio AutoU",
+    description="Sistema de classificação de emails com IA",
     version="1.0.0"
 )
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,250 +45,212 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "app" / "static"
 TEMPLATES_DIR = BASE_DIR / "app" / "templates"
 
-# Montar static files apenas se existir
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-classifier = EmailClassifier()
-logger.info("Classificador carregado com sucesso!")
+classifier = None
+_model_ready = False
+_model_lock = threading.Lock()
 
 
-@app.get("/")
-async def root():
+def is_ready() -> bool:
+    return _model_ready
+
+
+def set_ready(value: bool):
+    global _model_ready
+    with _model_lock:
+        _model_ready = value
+
+
+def load_models_background():
+
+    global classifier
+
     try:
-        with open(STATIC_DIR / "index.html", "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    except FileNotFoundError as e:
-        logger.error(f"index.html não encontrado! Erro: {str(e)}")
-        return HTMLResponse(
-            content=f"<h1>Erro: index.html não encontrado</h1>",
-            status_code=404
-        )
-    
+        logger.info("Carregando modelos de IA em background (pode demorar)...")
+        # Import dinâmico para reduzir impacto na importação do módulo
+        from app.classifier import EmailClassifier
+        classifier = EmailClassifier()
+        set_ready(True)
+        logger.info("Modelos carregados com sucesso. Readiness OK.")
+    except Exception as e:
+        set_ready(False)
+        logger.exception("Falha ao carregar modelos de IA: %s", e)
+
+
+@app.on_event("startup")
+def startup_event():
+
+    logger.info("Startup: iniciando carregamento de modelos em background...")
+    t = threading.Thread(target=load_models_background, daemon=True)
+    t.start()
+
 def sanitize_email_text(text: str) -> str:
 
     if text is None:
         return ""
-    
-    text = str(text).strip()
-    
-    if not text:
-        return ""
-    
+
     try:
         if isinstance(text, bytes):
-            text = text.decode('utf-8', errors='replace')
-    except:
-        pass
-    
+            text = text.decode("utf-8", errors="replace")
+    except Exception:
+        text = str(text)
+
+    text = str(text).strip()
+    if not text:
+        return ""
+
     dangerous_patterns = [
-        r'<script[^>]*>.*?</script>',
-        r'on\w+\s*=',
-        r'javascript:',
-        r'data:text/html',
+        r"<script[^>]*>.*?</script>",
+        r"on\w+\s*=",
+        r"javascript:",
+        r"data:text/html",
         r"DROP\s+TABLE",
         r"DELETE\s+FROM",
         r"INSERT\s+INTO",
         r"UPDATE\s+.*\s+SET",
+        r"--",
+        r"/\*.*?\*/",
     ]
-    
+
     for pattern in dangerous_patterns:
-        text = re.sub(pattern, '', text, flags=re.IGNORECASE | re.DOTALL)
-        if pattern in text.lower():
-            logger.warning(f"Tentativa de injeção detectada e removida: {pattern}")
-    
-    # ESCAPAR HTML entities (< > " ' &)
+        text = re.sub(pattern, "", text, flags=re.IGNORECASE | re.DOTALL)
+
     text = html.escape(text, quote=True)
-    
-    while '\n\n\n' in text:
-        text = text.replace('\n\n\n', '\n\n')
-    
-    logger.info(f"Texto sanitizado com sucesso")
+
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
     return text
 
-@app.post("/classify")
-async def classify_email(
-    email_text: str = Form(None),
-    file: UploadFile = File(None)
-):
-    
-    try:
-        if email_text and file:
-            logger.warning("Usuário enviou texto E arquivo")
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Envie apenas o texto do email ou um arquivo, não ambos."}
-            )
-        
-        if not email_text and not file:
-            logger.warning("Nenhum dado recebido")
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Por favor, envie o texto do email ou um arquivo (.txt ou .pdf)."}
-            )
-        
-        if file:
-            logger.info(f"Processando arquivo: {file.filename}")
-            
-            allowed_types = {'.txt': 'text/plain', '.pdf': 'application/pdf'}
-            file_ext = Path(file.filename).suffix.lower()
-            
-            if file_ext not in allowed_types:
-                logger.warning(f"Tipo de arquivo não permitido: {file_ext}")
-                return JSONResponse(
-                    status_code=400,
-                    content={"error": f"Tipo de arquivo não permitido. Use .txt ou .pdf"}
-                )
-            
-            try:
-                content = await file.read()
-                
-                if file_ext == '.txt':
-                    email_text = content.decode('utf-8', errors='replace')
-                    logger.info(f"Arquivo TXT lido com sucesso ({len(email_text)} caracteres)")
-                
-                elif file_ext == '.pdf':
-                    email_text = extract_text_from_pdf(content)
-                    
-                    if not email_text or len(email_text.strip()) < 5:
-                        logger.warning("PDF vazio ou inválido")
-                        return JSONResponse(
-                            status_code=400,
-                            content={"error": "Não foi possível extrair texto do PDF. Verifique se o arquivo é válido."}
-                        )
-                    
-                    logger.info(f"Arquivo PDF processado com sucesso ({len(email_text)} caracteres)")
-            
-            except UnicodeDecodeError:
-                logger.error("Erro ao decodificar arquivo")
-                return JSONResponse(
-                    status_code=400,
-                    content={"error": "Erro ao ler o arquivo. Certifique-se de que é um arquivo de texto válido."}
-                )
-            except Exception as e:
-                logger.error(f"Erro ao processar arquivo: {str(e)}")
-                return JSONResponse(
-                    status_code=400,
-                    content={"error": f"Erro ao processar arquivo: {str(e)}"}
-                )
-        
-        email_text = sanitize_email_text(email_text) if email_text else ""
-        
-        if not email_text:
-            logger.warning("Email vazio após processamento")
-            return JSONResponse(
-                status_code=400,
-                content={"error": "O email está vazio. Forneça um conteúdo válido."}
-            )
-        
-        if len(email_text) < 10:
-            logger.warning(f"Email muito curto: {len(email_text)} caracteres")
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Email muito curto. Forneça pelo menos 10 caracteres."}
-            )
-        
-        if len(email_text) > 5000:
-            logger.warning(f"Email muito longo: {len(email_text)} caracteres")
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Email muito longo. Máximo 5000 caracteres."}
-            )
-        
-        logger.info(f"Classificando email ({len(email_text)} caracteres)...")
-        
-        try:
-            resultado = classifier.classify(email_text)
-            categoria = resultado["categoria"]
-            confianca = resultado["confianca"]
-        except ValueError as ve:
-            logger.warning(f"Erro de validação no classifier: {str(ve)}")
-            return JSONResponse(
-                status_code=400,
-                content={"error": str(ve)}
-            )
-        except Exception as e:
-            logger.error(f"Erro ao classificar email: {str(e)}", exc_info=True)
-            return JSONResponse(
-                status_code=500,
-                content={"error": "Erro ao processar a classificação. Tente novamente."}
-            )
-        
-        logger.info(f"Email classificado como: {categoria} ({confianca}%)")
-        
-        logger.info(f"Gerando resposta automática...")
-        resposta = classifier.generate_response(categoria, email_text)
-        logger.info(f"Resposta gerada com sucesso!")
-        
-        return JSONResponse(
-            status_code=200,
-            content={
-                "sucesso": True,
-                "categoria": categoria,
-                "confianca": confianca,
-                "resposta_automatica": resposta,
-                "email_preview": email_text[:200] + "..." if len(email_text) > 200 else email_text
-            },
-            media_type="application/json; charset=utf-8"
-        )
-        
-    except Exception as e:
-        logger.error(f"Erro não tratado na rota /classify: {str(e)}", exc_info=True)
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Erro interno do servidor. Tente novamente mais tarde."}
-        )
-
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "online",
-        "version": "1.0.0",
-        "message": "Email Classifier AI está funcionando!"
-    }
 
 def extract_text_from_pdf(pdf_content: bytes) -> str:
+
     try:
         pdf_file = BytesIO(pdf_content)
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
-        
-        if len(pdf_reader.pages) == 0:
-            logger.warning("PDF vazio (sem páginas)")
+        reader = PyPDF2.PdfReader(pdf_file)
+
+        if len(reader.pages) == 0:
+            logger.warning("PDF sem páginas.")
             return ""
-        
-        text = ""
-        for page_num, page in enumerate(pdf_reader.pages):
+
+        parts = []
+        for i, page in enumerate(reader.pages):
             try:
                 page_text = page.extract_text()
                 if page_text:
-                    text += page_text + "\n"
-                logger.info(f"   Página {page_num + 1} processada")
+                    parts.append(page_text)
+                logger.debug("Página %d processada", i + 1)
             except Exception as e:
-                logger.warning(f"   Erro ao processar página {page_num + 1}: {str(e)}")
+                logger.warning("Erro ao processar página %d: %s", i + 1, e)
                 continue
-        
-        return text.strip()
-    
-    except Exception as e:
-        logger.error(f"Erro ao extrair texto do PDF: {str(e)}")
-        raise ValueError(f"Erro ao processar PDF: {str(e)}")
 
+        return "\n".join(parts).strip()
+    except Exception as e:
+        logger.exception("Erro ao extrair texto do PDF: %s", e)
+        return ""
+
+@app.get("/")
+async def root():
+
+    try:
+        fpath = STATIC_DIR / "index.html"
+        if fpath.exists():
+            return HTMLResponse(content=fpath.read_text(encoding="utf-8"))
+        else:
+            return HTMLResponse(content="<h1>Email Classifier AI</h1><p>Index não encontrado.</p>", status_code=200)
+    except Exception as e:
+        logger.exception("Erro servindo index: %s", e)
+        return HTMLResponse(content="<h1>Erro interno</h1>", status_code=500)
+
+
+@app.get("/health")
+async def health_check():
+
+    return {"status": "alive", "version": "1.0.0"}
+
+
+@app.get("/ready")
+async def readiness_check():
+
+    if is_ready():
+        return {"status": "ready"}
+    return JSONResponse(status_code=503, content={"status": "loading", "message": "Modelos ainda carregando"})
+
+
+@app.post("/classify")
+async def classify_email(email_text: str = Form(None), file: UploadFile = File(None)):
+
+    if not is_ready():
+        logger.info("Request de /classify recusado: modelos ainda carregando")
+        return JSONResponse(status_code=503, content={"error": "Serviço iniciando — modelos ainda carregando. Tente novamente em alguns instantes."})
+
+    if email_text and file:
+        return JSONResponse(status_code=400, content={"error": "Envie apenas texto ou um arquivo, não ambos."})
+
+    if not email_text and not file:
+        return JSONResponse(status_code=400, content={"error": "Envie texto ou um arquivo (.txt ou .pdf)."})
+
+    if file:
+        filename = file.filename or ""
+        ext = Path(filename).suffix.lower()
+        if ext not in {".txt", ".pdf"}:
+            return JSONResponse(status_code=400, content={"error": "Tipo de arquivo inválido. Use .txt ou .pdf."})
+
+        try:
+            raw = await file.read()
+            if ext == ".txt":
+                email_text = raw.decode("utf-8", errors="replace")
+            else:
+                email_text = extract_text_from_pdf(raw)
+                if not email_text:
+                    return JSONResponse(status_code=400, content={"error": "Não foi possível extrair texto do PDF."})
+        except Exception as e:
+            logger.exception("Erro lendo arquivo: %s", e)
+            return JSONResponse(status_code=400, content={"error": f"Erro ao processar arquivo: {str(e)}"})
+
+    email_text = sanitize_email_text(email_text) if email_text else ""
+    if not email_text:
+        return JSONResponse(status_code=400, content={"error": "O email está vazio após processamento."})
+
+    if len(email_text) < 10:
+        return JSONResponse(status_code=400, content={"error": "Email muito curto. Forneça pelo menos 10 caracteres."})
+
+    if len(email_text) > 5000:
+        return JSONResponse(status_code=400, content={"error": "Email muito longo. Máximo 5000 caracteres."})
+
+    try:
+        result = classifier.classify(email_text)
+        categoria = result.get("categoria")
+        confianca = result.get("confianca")
+    except ValueError as ve:
+        logger.warning("Validação do classifier: %s", ve)
+        return JSONResponse(status_code=400, content={"error": str(ve)})
+    except Exception as e:
+        logger.exception("Erro ao classificar: %s", e)
+        return JSONResponse(status_code=500, content={"error": "Erro ao processar a classificação."})
+
+    try:
+        resposta = classifier.generate_response(categoria, email_text)
+    except Exception:
+        logger.exception("Erro ao gerar resposta automática")
+        resposta = "Obrigado pelo contato! Estamos analisando sua solicitação."
+
+    payload = {
+        "sucesso": True,
+        "categoria": categoria,
+        "confianca": confianca,
+        "resposta_automatica": resposta,
+        "email_preview": (email_text[:200] + "...") if len(email_text) > 200 else email_text
+    }
+    return JSONResponse(status_code=200, content=payload, media_type="application/json; charset=utf-8")
 
 if __name__ == "__main__":
     import uvicorn
-    
-    logger.info("Iniciando servidor Email Classifier AI...")
-    logger.info("Acesse: http://localhost:8000")
-    logger.info("Documentação: http://localhost:8000/docs")
-    
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+    port = int(os.getenv("PORT", "8000"))
+    logger.info("Executando localmente em http://0.0.0.0:%s", port)
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
