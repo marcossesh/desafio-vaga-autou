@@ -3,9 +3,8 @@ fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 
-# AI/ML - CPU Compatible
+# AI/ML
 transformers==4.37.2
-torch==2.1.2+cpu
 
 # File Processing
 PyPDF2==4.0.1
@@ -13,9 +12,5 @@ PyPDF2==4.0.1
 # Utilities
 python-dotenv==1.0.0
 pydantic==2.5.3
-
-# NLP (Lightweight)
 nltk==3.8.1
-
-# File I/O
 aiofiles==23.2.1
