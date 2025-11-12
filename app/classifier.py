@@ -39,7 +39,7 @@ class EmailClassifier:
                     except Exception as e:
                         logger.debug("Falha ao inicializar genai.Client: %s", e)
                         self.client = None
-                        
+
                 elif hasattr(self.genai, "configure"):
                     try:
                         self.genai.configure(api_key=google_api_key)
@@ -125,109 +125,83 @@ class EmailClassifier:
         }
 
     def _classify_via_api(self, email_text: str) -> Optional[Dict]:
-
         if not self.ia_api_available or not self.client:
             raise Exception("Cliente Gemini não inicializado.")
-
+        
         prompt = f"""
-            Classifique o email abaixo em uma das duas categorias: 'Produtivo' ou 'Improdutivo'.
-            Produtivo: Requer uma ação, resposta técnica, solução de problema, ou tem caráter urgente.
-            Improdutivo: Cumprimentos, agradecimentos, mensagens sociais, ou não requer ação imediata do time técnico.
+    Classifique o email abaixo em uma das duas categorias: 'Produtivo' ou 'Improdutivo'.
+    Produtivo: Requer uma ação, resposta técnica, solução de problema, ou tem caráter urgente.
+    Improdutivo: Cumprimentos, agradecimentos, mensagens sociais, ou não requer ação imediata do time técnico.
+    Responda APENAS com uma das duas palavras: Produtivo ou Improdutivo.
 
-            Responda APENAS com uma das duas palavras: Produtivo ou Improdutivo.
-
-            EMAIL:
-            ---
-            {email_text}
-            ---
-            """
-
+    EMAIL:
+    ---
+    {email_text}
+    ---
+    """
+        
         try:
             logger.info("Chamando Gemini API para classificação...")
-
             resp = None
             text = None
-
+            
             if hasattr(self.client, "models") and hasattr(self.client.models, "generate_content"):
                 try:
-                    from google.genai import types
-                    config = types.GenerateContentConfig(temperature=0.0)
                     resp = self.client.models.generate_content(
                         model=self.model_name,
-                        contents=prompt,
-                        config=config
+                        contents=prompt
                     )
                     logger.debug("Chamada models.generate_content (nova API) executada com sucesso.")
                 except Exception as e:
                     logger.debug("Nova API (google-genai) falhou: %s", e)
                     resp = None
-
+            
+            # Tentativa 2: API legada com GenerativeModel
+            if resp is None and hasattr(self.genai, "GenerativeModel"):
+                try:
+                    model = self.genai.GenerativeModel(self.model_name)
+                    resp = model.generate_content(
+                        prompt,
+                        generation_config={"temperature": 0.0, "max_output_tokens": 10}
+                    )
+                    logger.debug("Chamada GenerativeModel.generate_content (API legada) executada com sucesso.")
+                except Exception as e:
+                    logger.debug("API legada GenerativeModel falhou: %s", e)
+                    resp = None
+            
+            # Tentativa 3: Método direto generate_content (caso seja configurada via configure())
             if resp is None and hasattr(self.client, "generate_content"):
                 try:
-                    resp = self.client.generate_content(prompt, temperature=0.0)
-                    logger.debug("Chamada generate_content (API legada) executada com sucesso.")
+                    resp = self.client.generate_content(prompt)
+                    logger.debug("Chamada direta generate_content executada com sucesso.")
                 except Exception as e:
-                    logger.debug("API legada generate_content falhou: %s", e)
+                    logger.debug("Método direto generate_content falhou: %s", e)
                     resp = None
-
-            if resp is None and hasattr(self.client, "start_chat"):
-                try:
-                    chat = self.client.start_chat()
-                    resp = chat.send_message(prompt, temperature=0.0)
-                    logger.debug("Chamada chat.send_message executada.")
-                except Exception as e:
-                    logger.debug("start_chat falhou: %s", e)
-                    resp = None
-
+            
             if resp is None:
                 logger.error("Cliente Gemini não expõe métodos conhecidos de geração ou todas chamadas falharam.")
                 return None
-
+            
             try:
-                text = getattr(resp, "text", None)
+                text = resp.text
             except Exception:
-                text = None
-
-            if not text and isinstance(resp, dict):
-                if "output" in resp and isinstance(resp["output"], list) and resp["output"]:
-                    candidate = resp["output"][0]
-                    text = candidate.get("content") or candidate.get("text") or candidate.get("output") or None
-                elif "candidates" in resp and isinstance(resp["candidates"], list) and resp["candidates"]:
-                    cand = resp["candidates"][0]
-                    text = cand.get("content") or cand.get("text") or cand.get("output") or None
-                elif "candidates" in resp and isinstance(resp["candidates"], str):
-                    text = resp["candidates"]
-                elif "text" in resp and isinstance(resp["text"], str):
-                    text = resp["text"]
-
-            if not text:
                 try:
-                    text = (
-                        getattr(resp, "output_text", None)
-                        or getattr(resp, "output", None)
-                        or getattr(resp, "result", None)
-                    )
-                    if isinstance(text, list) and text:
-                        if isinstance(text[0], str):
-                            text = text[0]
-                        elif isinstance(text[0], dict):
-                            text = text[0].get("content") or text[0].get("text")
-                    elif isinstance(text, dict):
-                        text = text.get("content") or text.get("text")
+                    # Acesso alternativo para algumas versões da API
+                    text = resp.candidates[0].content.parts[0].text
                 except Exception:
-                    text = None
-
+                    try:
+                        if hasattr(resp, '_result'):
+                            text = resp._result.candidates[0].content.parts[0].text
+                    except Exception:
+                        text = None
+            
             if not text:
-                try:
-                    snippet = str(resp)[:1000]
-                except Exception:
-                    snippet = "<unprintable resp>"
-                logger.warning("Resposta da API sem corpo textual. Resp object (snippet): %s", snippet)
+                logger.warning("Resposta da API sem corpo textual.")
                 return None
-
+            
             categoria_ia = str(text).strip().strip(" '\"").title()
             logger.info("Resposta bruta da IA: %s -> interpretado como: %s", text.strip(), categoria_ia)
-
+            
             if categoria_ia in ["Produtivo", "Improdutivo"]:
                 confianca_score = 0.95
                 if categoria_ia == "Produtivo":
@@ -237,7 +211,7 @@ class EmailClassifier:
             else:
                 logger.warning("Resposta inválida da IA: %s. Usando fallback.", text)
                 return None
-
+                
         except Exception as e:
             logger.exception("Erro na API do Gemini: %s", e)
             return None
