@@ -2,6 +2,8 @@ import random
 import logging
 import os
 from typing import Dict, Optional
+from google.genai.errors import ServerError, ClientError
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -101,55 +103,89 @@ class EmailClassifier:
             raise Exception("Cliente Gemini não inicializado.")
         
         prompt = f"""
-Classifique o email abaixo em uma das duas categorias: 'Produtivo' ou 'Improdutivo'.
-Produtivo: Requer uma ação, resposta técnica, solução de problema, ou tem caráter urgente.
-Improdutivo: Cumprimentos, agradecimentos, mensagens sociais, ou não requer ação imediata do time técnico.
-Responda APENAS com uma das duas palavras: Produtivo ou Improdutivo.
+    Classifique o email abaixo em uma das duas categorias: 'Produtivo' ou 'Improdutivo'.
+    Produtivo: Requer uma ação, resposta técnica, solução de problema, ou tem caráter urgente.
+    Improdutivo: Cumprimentos, agradecimentos, mensagens sociais, ou não requer ação imediata do time técnico.
+    Responda APENAS com uma das duas palavras: Produtivo ou Improdutivo.
 
-EMAIL:
----
-{email_text}
----
-"""
+    EMAIL:
+    ---
+    {email_text}
+    ---
+    """
         
-        try:
-            logger.info("Chamando Gemini API para classificação...")
-            
-            resp = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt
-            )
-            
-            logger.debug("Chamada models.generate_content executada com sucesso.")
-            
+        max_retries = 3
+        base_delay = 2  # segundos
+        
+        for attempt in range(max_retries):
             try:
-                text = resp.text
-            except Exception:
-                try:
-                    text = resp.candidates[0].content.parts[0].text
-                except Exception:
-                    text = None
-            
-            if not text:
-                logger.warning("Resposta da API sem corpo textual.")
-                return None
-            
-            categoria_ia = str(text).strip().strip(" '\"").title()
-            logger.info("Resposta bruta da IA: %s -> interpretado como: %s", text.strip(), categoria_ia)
-            
-            if categoria_ia in ["Produtivo", "Improdutivo"]:
-                confianca_score = 0.95
-                if categoria_ia == "Produtivo":
-                    return {'labels': ["Produtivo", "Improdutivo"], 'scores': [confianca_score, 1 - confianca_score]}
-                else:
-                    return {'labels': ["Produtivo", "Improdutivo"], 'scores': [1 - confianca_score, confianca_score]}
-            else:
-                logger.warning("Resposta inválida da IA: %s. Usando fallback.", text)
-                return None
+                logger.info(f"Chamando Gemini API para classificação... (tentativa {attempt + 1}/{max_retries})")
                 
-        except Exception as e:
-            logger.exception("Erro na API do Gemini: %s", e)
-            return None
+                resp = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt
+                )
+                
+                logger.debug("Chamada models.generate_content executada com sucesso.")
+                
+                try:
+                    text = resp.text
+                except Exception:
+                    try:
+                        text = resp.candidates[0].content.parts[0].text
+                    except Exception:
+                        text = None
+                
+                if not text:
+                    logger.warning("Resposta da API sem corpo textual.")
+                    return None
+                
+                categoria_ia = str(text).strip().strip(" '\"").title()
+                logger.info("Resposta bruta da IA: %s -> interpretado como: %s", text.strip(), categoria_ia)
+                
+                if categoria_ia in ["Produtivo", "Improdutivo"]:
+                    confianca_score = 0.95
+                    if categoria_ia == "Produtivo":
+                        return {'labels': ["Produtivo", "Improdutivo"], 'scores': [confianca_score, 1 - confianca_score]}
+                    else:
+                        return {'labels': ["Produtivo", "Improdutivo"], 'scores': [1 - confianca_score, confianca_score]}
+                else:
+                    logger.warning("Resposta inválida da IA: %s. Usando fallback.", text)
+                    return None
+            
+            except ServerError as e:
+                if e.code in [500, 503]:
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"Erro {e.code} ({e.message}). Tentando novamente em {delay}s...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"Erro na API do Gemini após {max_retries} tentativas: {e}")
+                        return None
+                else:
+                    logger.error(f"Erro não recuperável na API do Gemini: {e}")
+                    return None
+            
+            except ClientError as e:
+                if e.code == 429:
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"Rate limit atingido (429). Tentando novamente em {delay}s...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"Rate limit excedido após {max_retries} tentativas.")
+                        return None
+                else:
+                    logger.error(f"Erro de cliente na API: {e}")
+                    return None
+            
+            except Exception as e:
+                logger.exception(f"Erro inesperado na API do Gemini: {e}")
+                return None
+        
+        return None
     
     def classify(self, email_text: str) -> Dict:
         if not email_text or len(email_text.strip()) < 5:
