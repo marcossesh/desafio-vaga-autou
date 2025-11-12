@@ -11,7 +11,6 @@ import logging
 import threading
 from pathlib import Path
 from io import BytesIO
-from typing import Optional
 
 from fastapi import FastAPI, Form, UploadFile, File
 from fastapi.responses import JSONResponse, HTMLResponse
@@ -19,6 +18,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 import PyPDF2
+
+from dotenv import load_dotenv
+load_dotenv()
 
 # Tente não importar EmailClassifier até carregar em background
 
