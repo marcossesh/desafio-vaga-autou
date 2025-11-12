@@ -205,6 +205,11 @@ async function classifyViaText(text) {
     }
 
     const result = await response.json();
+    
+    if (result.error) {
+        throw new Error(result.error);
+    }
+
     displayResults(result, text);
 }
 
@@ -233,6 +238,11 @@ async function classifyViaFile(file) {
     }
 
     const result = await response.json();
+    
+    if (result.error) {
+        throw new Error(result.error);
+    }
+    
     const preview = result.email_preview;
     displayResults(result, preview);
 }

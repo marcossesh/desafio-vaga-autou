@@ -6,13 +6,18 @@ from pathlib import Path
 import logging
 import PyPDF2
 from io import BytesIO
-
+import io
+import html
+from urllib.parse import unquote
 from app.classifier import EmailClassifier
+import sys
+import re
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 app = FastAPI(
     title="Classificador de Emails",
     description="Sistema de classificação de emails com IA para o Desafio AutoU",
@@ -52,6 +57,47 @@ async def root():
             content=f"<h1>Erro: index.html não encontrado</h1>",
             status_code=404
         )
+    
+def sanitize_email_text(text: str) -> str:
+
+    if text is None:
+        return ""
+    
+    text = str(text).strip()
+    
+    if not text:
+        return ""
+    
+    try:
+        if isinstance(text, bytes):
+            text = text.decode('utf-8', errors='replace')
+    except:
+        pass
+    
+    dangerous_patterns = [
+        r'<script[^>]*>.*?</script>',
+        r'on\w+\s*=',
+        r'javascript:',
+        r'data:text/html',
+        r"DROP\s+TABLE",
+        r"DELETE\s+FROM",
+        r"INSERT\s+INTO",
+        r"UPDATE\s+.*\s+SET",
+    ]
+    
+    for pattern in dangerous_patterns:
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE | re.DOTALL)
+        if pattern in text.lower():
+            logger.warning(f"Tentativa de injeção detectada e removida: {pattern}")
+    
+    # ESCAPAR HTML entities (< > " ' &)
+    text = html.escape(text, quote=True)
+    
+    while '\n\n\n' in text:
+        text = text.replace('\n\n\n', '\n\n')
+    
+    logger.info(f"Texto sanitizado com sucesso")
+    return text
 
 @app.post("/classify")
 async def classify_email(
@@ -60,7 +106,6 @@ async def classify_email(
 ):
     
     try:
-        
         if email_text and file:
             logger.warning("Usuário enviou texto E arquivo")
             return JSONResponse(
@@ -74,7 +119,6 @@ async def classify_email(
                 status_code=400,
                 content={"error": "Por favor, envie o texto do email ou um arquivo (.txt ou .pdf)."}
             )
-        
         
         if file:
             logger.info(f"Processando arquivo: {file.filename}")
@@ -121,8 +165,7 @@ async def classify_email(
                     content={"error": f"Erro ao processar arquivo: {str(e)}"}
                 )
         
-        
-        email_text = email_text.strip() if email_text else ""
+        email_text = sanitize_email_text(email_text) if email_text else ""
         
         if not email_text:
             logger.warning("Email vazio após processamento")
@@ -144,40 +187,49 @@ async def classify_email(
                 status_code=400,
                 content={"error": "Email muito longo. Máximo 5000 caracteres."}
             )
-                
+        
         logger.info(f"Classificando email ({len(email_text)} caracteres)...")
         
-        resultado = classifier.classify(email_text)
-        categoria = resultado["categoria"]
-        confianca = resultado["confianca"]
+        try:
+            resultado = classifier.classify(email_text)
+            categoria = resultado["categoria"]
+            confianca = resultado["confianca"]
+        except ValueError as ve:
+            logger.warning(f"Erro de validação no classifier: {str(ve)}")
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(ve)}
+            )
+        except Exception as e:
+            logger.error(f"Erro ao classificar email: {str(e)}", exc_info=True)
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Erro ao processar a classificação. Tente novamente."}
+            )
         
         logger.info(f"Email classificado como: {categoria} ({confianca}%)")
-                
+        
         logger.info(f"Gerando resposta automática...")
         resposta = classifier.generate_response(categoria, email_text)
-        
         logger.info(f"Resposta gerada com sucesso!")
-                
-        return {
-            "sucesso": True,
-            "categoria": categoria,
-            "confianca": confianca,
-            "resposta_automatica": resposta,
-            "email_preview": email_text[:200] + "..." if len(email_text) > 200 else email_text
-        }
         
-    except ValueError as ve:
-        logger.warning(f"Erro de validação: {str(ve)}")
         return JSONResponse(
-            status_code=400,
-            content={"error": str(ve)}
+            status_code=200,
+            content={
+                "sucesso": True,
+                "categoria": categoria,
+                "confianca": confianca,
+                "resposta_automatica": resposta,
+                "email_preview": email_text[:200] + "..." if len(email_text) > 200 else email_text
+            },
+            media_type="application/json; charset=utf-8"
         )
-    
+        
     except Exception as e:
-        logger.error(f"Erro ao classificar email: {str(e)}", exc_info=True)
+        logger.error(f"Erro não tratado na rota /classify: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=500,
-            content={"error": "Erro interno do servidor ao processar o email. Tente novamente."}
+            content={"error": "Erro interno do servidor. Tente novamente mais tarde."}
         )
 
 @app.get("/health")

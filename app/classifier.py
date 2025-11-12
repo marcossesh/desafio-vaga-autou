@@ -90,27 +90,27 @@ class EmailClassifier:
         ]
 
         self.templates = {
-            "Produtivo": [
-                "Obrigado pelo contato! Estamos analisando sua solicitação.",
-                "Recebemos seu email. Nossa equipe está trabalhando nisso.",
-                "Ótimo, vamos verificar isso e retornaremos em breve.",
-                "Recebido! Vamos priorizando sua solicitação.",
-                "Agradecemos os detalhes. Estamos investigando isso agora.",
-                "Perfeito! Vamos avaliar sua solicitação e responder em breve.",
-                "Entendido! Nossa equipe está verificando esse ponto agora.",
-                "Muito bem, vamos trabalhar nessa demanda para você."
-            ],
-            "Improdutivo": [
-                "Muito obrigado pelo seu contato! Apreciamos.",
-                "Agradecemos a mensagem! Tudo bem com você?",
-                "Obrigado! Voltaremos em breve com atualizações.",
-                "Obrigado pelo carinho! Estamos aqui para ajudar.",
-                "Agradeço sinceramente! Tenha um ótimo dia!",
-                "Muito legal! Obrigado pelo carinho com a gente!",
-                "Obrigado pela atenção! Um grande abraço!",
-                "Agradecemos muito! Continue contando com a gente!"
-            ]
-        }
+    "Produtivo": [
+        "Obrigado por entrar em contato! Sua solicitação foi recebida e está sendo priorizada. Nossa equipe entrará em contato em breve.",
+        "Recebemos sua mensagem! Um de nossos especialistas já está analisando e responderá em até 24 horas.",
+        "Perfeito! Anotamos sua demanda e vamos verificar isso com urgência. Você receberá uma atualização em breve.",
+        "Sua solicitação foi registrada no sistema. Nossa equipe técnica está investigando e fornecerá um feedback assim que possível.",
+        "Entendido! Vamos trabalhar nisso imediatamente. Fique atento para nossas comunicações.",
+        "Agradecemos os detalhes. Nosso time especializado está analisando sua solicitação neste momento.",
+        "Excelente! Sua demanda foi aceita na fila de prioridades. Você será notificado sobre o progresso.",
+        "Obrigado por reportar isso. Nossa equipe de suporte já está investigando o problema."
+    ],
+    "Improdutivo": [
+        "Obrigado pela mensagem! Apreciamos muito o contato e os bons votos.",
+        "Agradecemos genuinamente! Sua consideração significa muito para o nosso time.",
+        "Muito obrigado! Continuaremos trabalhando para oferecer o melhor serviço.",
+        "Agradecemos de coração! Estamos sempre aqui para ajudar quando precisar.",
+        "Sua mensagem foi muito bem-vinda! Obrigado pelo apoio e confiança.",
+        "Muito legal! Agradecemos pela amizade e continue contando conosco para suas necessidades.",
+        "Obrigado pela atenção! Um grande abraço para você e sua equipe.",
+        "Agradecemos sinceramente! Esperamos continuar servindo você com excelência."
+    ]
+    }
 
     def classify(self, email_text: str) -> Dict:
         if not email_text or len(email_text.strip()) < 5:
@@ -125,7 +125,7 @@ class EmailClassifier:
             result_ia = self.classifier(
                 email_truncado,
                 candidate_labels=["Produtivo", "Improdutivo"],
-                hypothesis_template="Este email de suporte é uma solicitação que requer ação ou resposta específica do time de suporte: {}."
+                hypothesis_template="Este email requer ação imediata da equipe de suporte? {}"
             )
 
             categoria_ia = result_ia['labels'][0]
@@ -140,12 +140,12 @@ class EmailClassifier:
             logger.info(f"Keywords: {categoria_keyword} ({confianca_keyword}%)")
             
             # Lógica Nova de decisão:
-            # Se a IA tem baixa confiança (<70%), usa keywords como fallback
-            if confianca_ia < 70:
+            # Se a IA tem baixa confiança (<75%), usa keywords como fallback
+            if confianca_ia < 75:
                 categoria_final = categoria_keyword
                 confianca_final = confianca_keyword
                 metodo = "keyword (IA com baixa confiança)"
-                logger.info(f"Usando keywords porque IA tem {confianca_ia}% < 70%")
+                logger.info(f"Usando keywords porque IA tem {confianca_ia}% < 75%")
             else:
                 categoria_final = categoria_ia
                 confianca_final = confianca_ia
