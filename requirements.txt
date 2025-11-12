@@ -1,4 +1,4 @@
-# Corrigir o NumPy para a versão 1.x para evitar incompatibilidades binárias com módulos compilados com o NumPy 1.x
+#Fix versão do numpy com o Torch
 numpy==1.26.4
 
 fastapi==0.109.0
