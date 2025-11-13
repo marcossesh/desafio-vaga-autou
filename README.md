@@ -1,392 +1,354 @@
-# Classificador de Emails - Desafio AutoU
+# 📧 Classificador de Emails com IA
 
-<div align="center">
+Sistema inteligente de classificação automática de emails utilizando IA (Google Gemini) para categorizar mensagens como **Produtivas** ou **Improdutivas**, otimizando o gerenciamento de comunicações corporativas.
 
-![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)
-![Google Gemini](https://img.shields.io/badge/Google%20Gemini-2.5%20Flash-orange.svg)
+## 🎯 Funcionalidades
 
-**Solução de classificação inteligente de emails com IA + Respostas automáticas**
+* **Classificação Inteligente**: Utiliza API do Google Gemini para análise contextual avançada
+* **Fallback por Keywords**: Sistema de contingência baseado em palavras-chave caso a API esteja indisponível
+* **Interface Responsiva**: Frontend moderno com suporte a tema claro/escuro
+* **Upload de Arquivos**: Suporte para análise de arquivos `.txt` e `.pdf` (até 5MB)
+* **Exemplos Práticos**: Exemplos pré-configurados para teste rápido
+* **Respostas Automáticas**: Geração de respostas contextualizadas baseadas na categoria
 
-[Demo ao Vivo](https://seu-app.digitalocean.app) • [Vídeo Demonstrativo](https://youtube.com/seu-video) • [Repositório](https://github.com/marcossesh/desafio-vaga-autou)
+## 🛠️ Tecnologias Utilizadas
 
-</div>
+### Backend
 
----
+* **Python 3.x**
+* **FastAPI**: Framework web de alta performance
+* **Google Gemini API**: Modelo de IA para classificação (gemini-2.5-flash)
+* **PyPDF2**: Extração de texto de arquivos PDF
+* **python-dotenv**: Gerenciamento de variáveis de ambiente
+* **NumPy 1.26.4**: Processamento numérico e compatibilidade
 
-## Sobre o Desafio AutoU
+### Frontend
 
-Este projeto foi desenvolvido como solução para o **Desafio Técnico AutoU**, que propõe a criação de um sistema automatizado de classificação de emails para empresas do setor financeiro.
+* **HTML5/CSS3**: Interface moderna e responsiva
+* **JavaScript Vanilla**: Manipulação DOM e requisições assíncronas
 
-### Contexto do Problema
+## 📋 Pré-requisitos
 
-Grandes empresas do setor financeiro lidam com **alto volume de emails diariamente**, incluindo:
-- Solicitações de status de requisições
-- Compartilhamento de arquivos
-- Mensagens improdutivas (felicitações, agradecimentos)
-- Perguntas não relevantes
+* Python 3.8 ou superior
+* Chave de API do Google Gemini (gratuita)
+* pip (gerenciador de pacotes Python)
+* Bash (para execução do script de setup automático)
 
-**Desafio:** Automatizar a leitura, classificação e sugestão de respostas, eliminando a necessidade de processamento manual.
+## 🚀 Instalação e Execução Local
 
-### Objetivos Atendidos
+### Método 1: Setup Automático (Recomendado)
 
-✅ **Classificar emails** em categorias predefinidas (Produtivo/Improdutivo)  
-✅ **Sugerir respostas automáticas** baseadas na classificação  
-✅ **Interface web intuitiva** para upload e processamento  
-✅ **Deploy em nuvem** com acesso público  
-✅ **Integração com IA** (Google Gemini API)  
-✅ **Sistema robusto** com fallback e retry automático  
+#### 1. Clone o repositório
 
----
+git clone https://github.com/marcossesh/desafio-vaga-autou  
+cd desafio-vaga-autou
 
-## Categorias de Classificação
+
+#### 2. Crie um ambiente virtual
+
+python -m venv venv
+Windows
+
+venv\Scripts\activate
+Linux/Mac
+
+source venv/bin/activate
+
+
+#### 3. Execute o script de setup
+
+Linux/Mac
+
+chmod +x setup.sh
+./setup.sh
+
+Windows (Git Bash)
+
+bash setup.sh
+
+
+O script irá automaticamente:
+* Atualizar pip, setuptools e wheel
+* Instalar NumPy 1.26.4 para compatibilidade
+* Instalar todas as dependências do requirements.txt
+
+#### 4. Configure as variáveis de ambiente
+
+Crie um arquivo `.env` na raiz do projeto:
+
+* GOOGLE_API_KEY=sua_chave_api_aqui
+
+* GEMINI_MODEL=gemini-2.5-flash
+
+
+**Como obter a chave da API Google Gemini**:
+1. Acesse [Google AI Studio](https://aistudio.google.com/apikey)
+2. Crie uma nova API Key
+3. Copie e cole no arquivo `.env`
+
+#### 5. Execute a aplicação
+
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+
+#### 6. Acesse no navegador
+
+http://localhost:8000
+
+
+### Método 2: Instalação Manual
+
+#### 1. Clone e crie ambiente virtual
+
+git clone https://github.com/marcossesh/desafio-vaga-autou  
+cd desafio-vaga-autou  
+python -m venv venv  
+source venv/bin/activate # Linux/Mac
+
+
+#### 2. Instale as dependências manualmente
+
+Atualize pip
+
+python -m pip install --upgrade pip setuptools wheel  
+Instale NumPy primeiro (compatibilidade)  
+pip install numpy==1.26.4  
+Instale as demais dependências
+
+pip install fastapi uvicorn python-dotenv PyPDF2 google-genai
+
+
+#### 3. Configure o arquivo .env e execute
+
+Siga os passos 4, 5 e 6 do Método 1.
+
+## 📁 Estrutura do Projeto
+
+projeto/  
+│  
+├── app/  
+│ ├── static/  
+│ │ ├── index.html # Interface principal  
+│ │ └── script.js # Lógica frontend  
+│ └── classifier.py # Motor de classificação IA  
+│  
+├── main.py # Servidor FastAPI  
+├── setup.sh # Script de instalação automática  
+├── requirements.txt # Dependências Python  
+├── .env # Variáveis de ambiente (criar)  
+└── README.md # Este arquivo  
+
+
+## 📝 Como Usar
+
+### Classificação por Texto
+
+1. Na aba "Digitar Texto", cole ou digite o conteúdo do email
+2. Clique em "Classificar Email"
+3. Veja o resultado com categoria, confiança e resposta sugerida
+
+### Classificação por Arquivo
+
+1. Alterne para a aba "Upload de Arquivo"
+2. Selecione um arquivo `.txt` ou `.pdf` (máximo 5MB)
+3. Clique em "Classificar Email"
+4. O sistema extrairá o texto e classificará automaticamente
+
+### Exemplos Prontos
+
+Clique nos botões de exemplo para testar classificações:
+* **Email Produtivo**: Solicitação de suporte técnico
+* **Email Improdutivo**: Mensagem de felicitações
+
+## 🔍 Categorias de Classificação
 
 ### Produtivo
 
-Emails que **requerem ação ou resposta específica** da equipe.
-
-**Exemplos:**
-- Solicitações de suporte técnico
-- Atualizações sobre casos em aberto (#ticket)
-- Dúvidas sobre sistemas/processos
-- Requisições de acesso ou dados
-- Relatos de bugs ou problemas
+Emails que requerem ação, resposta técnica ou têm caráter urgente:
+* Solicitações de suporte/ajuda
+* Reportes de bugs/problemas
+* Pedidos de informação/acesso
+* Atualizações de status
+* Questões financeiras/pagamentos
 
 ### Improdutivo
 
-Emails que **não necessitam ação imediata** ou são sociais/informativos.
+Emails que não requerem ação imediata:
+* Cumprimentos e saudações
+* Agradecimentos
+* Mensagens comemorativas
+* Conteúdo social/pessoal
+* Forwards informativos
 
-**Exemplos:**
-- Mensagens de felicitações (Natal, Ano Novo)
-- Agradecimentos genéricos
-- Cumprimentos e saudações
-- Mensagens de boa sorte
+## 🤖 Sistema de Fallback
 
----
+O sistema possui **dois métodos de classificação**:
 
-## Solução Implementada
+1. **Gemini API** (Primário): Análise contextual avançada com ~95% de confiança
+2. **Keywords** (Fallback): Classificação por palavras-chave quando a API está indisponível
 
-### Arquitetura
+O sistema **automaticamente** alterna para o fallback em caso de:
+* API Key inválida ou ausente
+* Erros de servidor (500, 503)
+* Rate limit excedido (429)
+* Falhas de rede
+
+## 📊 Endpoints da API
+
+### `GET /`
+
+Retorna a interface HTML principal
+
+### `POST /classify`
+
+Classifica um email por texto ou arquivo
+
+**Parâmetros**:
+* `email_text` (opcional): Texto do email
+* `file` (opcional): Arquivo .txt ou .pdf
+
+**Resposta**:
+
+{  
+"categoria": "Produtivo",  
+"confianca": 95.5,  
+"resposta": "Obrigado por entrar em contato!...",  
+"metodo": "gemini-api",  
+"labels": ["Produtivo", "Improdutivo"],  
+"scores": [95.5, 4.5]  
+}  
 
 
-FRONTEND
-- Upload de arquivos (.txt, .pdf) │
-- Input de texto direto │
-- Exibição de resultados com confiança │
+### `GET /health`
 
-REST API
+Verifica o status do serviço
 
-BACKEND (FastAPI + Python) │
-- Processamento de arquivos (PDF/TXT) │
-- Orquestração de classificação │
-- Geração de respostas automáticas │
+### `GET /readiness`
 
-│ Gemini API │ │ Retry 3x │ │ Fallback │ │ Keywords │
+Verifica se os modelos de IA estão carregados
 
+## ⚙️ Configurações Avançadas
 
-### Tecnologias Utilizadas
+### Variáveis de Ambiente
 
-| Componente | Tecnologia | Justificativa |
-|------------|------------|---------------|
-| **Backend** | FastAPI 0.115+ | Performance + documentação automática |
-| **IA Principal** | Google Gemini 2.5 Flash | Zero-shot, 95% acurácia, free tier |
-| **Processamento PDF** | PyPDF2 3.0+ | Extração de texto confiável |
-| **Fallback** | Keywords (90+ palavras) | 100% disponibilidade |
-| **Deploy** | DigitalOcean Apps | Escalável e confiável |
-| **Frontend** | HTML5 + CSS3 + JS Vanilla | Responsivo, sem dependências |
+Obrigatórias
 
-### Diferenciais Técnicos Implementados
-
-**Retry com Backoff Exponencial**
-- 3 tentativas automáticas (2s, 4s, 8s)
-- Trata erros 503 (overloaded), 500 (server error), 429 (rate limit)
-
-**Sistema Resiliente**
-- Se Gemini API falhar → Fallback por keywords
-- Garante 100% de disponibilidade
-
-**Alta Acurácia**
-- Gemini API: 95% de confiança
-- Fallback: 70-80% de confiança
-
-**Performance**
-- Resposta em 1-3 segundos (com IA)
-- <100ms (com fallback)
-
----
-
-## Instalação Local
-
-### Pré-requisitos
-
-- Python 3.11+
-- Git
-- Google Gemini API Key ([Obter aqui](https://aistudio.google.com/app/apikey))
-
-### Passo a Passo
-
-1. Clonar repositório
-
-git clone https://github.com/marcossesh/desafio-vaga-autou.git
-cd desafio-vaga-autou
-2. Criar ambiente virtual
-
-python3 -m venv venv
-source venv/bin/activate # Linux/macOS
-venv\Scripts\activate # Windows
-3. Instalar dependências
-
-pip install -r requirements.txt
-4. Configurar variáveis de ambiente
-
-cat > .env << EOF
 GOOGLE_API_KEY=sua_chave_aqui
-GEMINI_MODEL=gemini-2.5-flash
-PORT=8000
-EOF
+Opcionais
+
+GEMINI_MODEL=gemini-2.5-flash # Modelo Gemini a usar
+PORT=8000 # Porta do servidor
 
 
-Acesse: [**http://localhost:8000**](http://localhost:8000)
+### Limites e Validações
 
----
+* Tamanho mínimo de texto: 10 caracteres
+* Tamanho máximo de texto: 5000 caracteres
+* Tamanho máximo de arquivo: 5MB
+* Formatos aceitos: `.txt`, `.pdf`
 
-## Como Usar
+## 🐛 Solução de Problemas
 
-### Interface Web
+### Erro: "GOOGLE_API_KEY não encontrada"
 
-1. **Acesse** a aplicação hospedada ou local
-2. **Escolha o método de entrada:**
-   - Digite/cole o texto do email diretamente
-   - Faça upload de arquivo `.txt` ou `.pdf`
-3. **Clique "Classificar Email"**
-4. **Visualize os resultados:**
-   - Categoria (Produtivo/Improdutivo)
-   - Confiança (0-100%)
-   - Método usado (gemini-api / keywords-fallback)
-   - Resposta automática sugerida
-5. **Copie a resposta** ou faça nova classificação
+**Solução**: Crie o arquivo `.env` com sua chave da API
 
-### API (Para Integração)
+### Erro: "google-genai não instalado"
 
-Classificar via texto
+**Solução**: Execute o script `setup.sh` ou `pip install google-genai`
 
-curl -X POST "https://seu-app.digitalocean.app/classify"
--H "Content-Type: application/x-www-form-urlencoded"
--d "email_text=Prezados, gostaria de verificar o status..."
-Classificar via arquivo
+### Erro de compatibilidade com NumPy
 
-curl -X POST "https://seu-app.digitalocean.app/classify"
--F "file=@email.txt"
+**Solução**: O script `setup.sh` instala automaticamente a versão compatível (1.26.4). Se instalou manualmente, execute:
+
+pip install numpy==1.26.4
 
 
-**Resposta:**
+### Sistema usando fallback ao invés da IA
 
-{
-"sucesso": true,
-"categoria": "Produtivo",
-"confianca": 95.0,
-"metodo": "gemini-api",
-"resposta_automatica": "Obrigado por entrar em contato!...",
-"email_preview": "Prezados, gostaria de verificar..."
-}
+**Possíveis causas**:
+* API Key inválida
+* Limite de requisições excedido
+* Problema de conexão com a internet
+
+### Arquivo PDF não é processado
+
+**Soluções**:
+* Verifique se o PDF tem texto extraível (não imagem)
+* Confirme que o arquivo não está corrompido
+* Teste com um arquivo `.txt` primeiro
+
+### Erro ao executar setup.sh no Windows
+
+**Solução**: Use Git Bash ou WSL:
+
+Git Bash
+
+bash setup.sh
+WSL
+
+chmod +x setup.sh
+./setup.sh
 
 
----
+## 🔒 Segurança
 
-## Decisões Técnicas
+O sistema implementa:
+* **Sanitização de input**: Proteção contra XSS e SQL injection
+* **Validação de arquivos**: Verificação de tipo e tamanho
+* **HTML Escape**: Escape de caracteres perigosos
+* **CORS configurado**: Controle de origens permitidas
 
-### 1. Google Gemini 2.5 Flash (Principal)
+## 📈 Performance
 
-**Por que escolhi:**
-- Zero-shot learning (não requer treinamento)
-- 95%+ de acurácia em classificação de texto
-- Free tier: 15 requisições/minuto
-- Resposta rápida (1-3s)
-- Modelo mais recente (2025)
+* **Carregamento assíncrono**: Modelos carregam em background na inicialização
+* **Retry automático**: 3 tentativas com backoff exponencial em caso de falha
+* **Timeout**: 30 segundos por requisição
+* **Truncamento inteligente**: Primeiros 512 caracteres para análise rápida
 
-**Alternativas avaliadas:**
-- Hugging Face BART: Requer mais recursos
-- OpenAI GPT-4: Custo elevado
-- Modelos locais: Complexidade de deploy e custo alto para manter
+## Testando a Instalação
 
-### 2. Fallback Híbrido (Keywords)
+Após seguir os passos de instalação, teste o sistema:
 
-**Estratégia:**
-1. Tenta Gemini API (até 3x com retry)
-2. Se falhar → Usa análise de 95 keywords mapeadas
-3. Confiança ajustada: 50-95% (keywords) vs 95% (Gemini)
+1. Verifique se o servidor está rodando
 
-**Benefícios:**
-- Garante 100% de disponibilidade
-- Funciona offline ou sem API key
-- Baixo custo computacional
+curl http://localhost:8000/health
+2. Teste a classificação via API
 
-### 3. Processamento de Arquivos
+curl -X POST http://localhost:8000/classify
+-F "email_text=Preciso de ajuda urgente com meu login"
+3. Acesse a interface web
+Abra http://localhost:8000 no navegador
 
-**PDF:** PyPDF2 extrai texto de múltiplas páginas  
-**TXT:** Decodificação UTF-8 com tratamento de erro  
-**Limite:** 5000 caracteres para otimizar performance  
-
-### 4. Templates de Resposta
-
-**8 templates por categoria:**
-- Produtivo: "Obrigado por entrar em contato! Sua solicitação foi recebida..."
-- Improdutivo: "Obrigado pela mensagem! Apreciamos muito o contato..."
-
-**Vantagens:**
-- Consistência nas respostas
-- Resposta instantânea (sem gerar texto)
-- Fácil customização por setor
-
----
-
-## Deploy
-
-**Aplicação hospedada em:** [DigitalOcean App Platform]
-
-**Acesso público:** https://desafio-autou-juujj.ondigitalocean.app
-
-**Instruções de deploy:**
-1. Conectar repositório GitHub
-2. Configurar variáveis de ambiente (`GOOGLE_API_KEY`, `GEMINI_MODEL`)
-3. Build command: `pip install -r requirements.txt`
-4. Run command: `python main.py`
-
----
-
-## Resultados e Métricas
-
-| Métrica | Valor |
-|---------|-------|
-| **Acurácia (Gemini)** | 95%+ |
-| **Acurácia (Keywords)** | 70-80% |
-| **Tempo médio de resposta** | 1-3s (IA) / <100ms (fallback) |
-| **Uptime** | 99.9% (com fallback) |
-| **Requisições suportadas** | 15/min (free tier) |
-
----
-
-## Demonstração em Vídeo
-
-**Vídeo completo (3-5 min):** [YouTube Link]
-
-**Conteúdo:**
-- Introdução pessoal e contexto do desafio
-- Demonstração da interface web
-- Upload de email e classificação
-- Explicação técnica da arquitetura
-- Decisões técnicas e tecnologias usadas
-
----
-
-## Troubleshooting
-
-### Erro: `503 UNAVAILABLE - The model is overloaded`
-
-**Causa:** Servidores do Gemini sobrecarregados (horários de pico)
-
-**Solução:** 
-- Sistema já trata automaticamente com retry + fallback
-- Aguarde alguns segundos e tente novamente
-
-### PDF não é processado
-
-**Causa:** PDF escaneado (imagem) sem texto extraível
-
-**Solução:**
-- Use arquivos PDF com texto
-- Ou converta para `.txt` antes
-
-### API Key inválida
-
-**Solução:**
-1. Obtenha nova key em https://aistudio.google.com/app/apikey
-2. Adicione no arquivo `.env`: `GOOGLE_API_KEY=sua_chave`
-3. Reinicie a aplicação
-
----
-
-## Documentação da API
-
-Documentação interativa (Swagger): [**http://localhost:8000/docs**](http://localhost:8000/docs)
-
-**Endpoints:**
-- `POST /classify` - Classifica um email
-- `GET /health` - Health check
-- `GET /` - Interface web
-
----
-
-## Checklist de Requisitos Atendidos
-
-### Interface Web
-- [x] Formulário de upload de arquivos (.txt, .pdf)
-- [x] Input direto de texto
-- [x] Exibição de categoria (Produtivo/Improdutivo)
-- [x] Exibição de resposta automática sugerida
-- [x] Design responsivo e intuitivo
-- [x] Elementos visuais diferenciados
-
-### Backend Python
-- [x] Leitura de arquivos .txt e .pdf
-- [x] Processamento de linguagem natural (NLP)
-- [x] Classificação com IA (Google Gemini)
-- [x] Geração de respostas automáticas
-- [x] Integração API-Interface
-- [x] Sistema de fallback robusto
-
-### Hospedagem na Nuvem
-- [x] Deploy em plataforma cloud (DigitalOcean)
-- [x] Link público funcional
-- [x] Aplicação acessível sem instalação local
-
-### Entregáveis
-- [x] Repositório GitHub público e organizado
-- [x] README com instruções claras
-- [x] requirements.txt
-- [x] Vídeo demonstrativo (3-5 min)
-- [x] Link da aplicação deployada
-
----
 
 ## Contribuindo
 
-Este é um projeto acadêmico, mas sugestões são bem-vindas!
+Sugestões de melhorias são bem-vindas! Sinta-se à vontade para:
+* Reportar bugs
+* Sugerir novas funcionalidades
+* Melhorar a documentação
+* Adicionar mais keywords ao fallback
+* Otimizar o script de setup
 
-1. Fork este repositório
-2. Crie uma branch: `git checkout -b feature/MinhaFeature`
-3. Commit: `git commit -m 'Add: MinhaFeature'`
-4. Push: `git push origin feature/MinhaFeature`
-5. Abra um Pull Request
+## 📄 Licença
 
----
+Este projeto está sob a licença MIT (ou sua licença preferida).
 
-## Autor
+## 👥 Autor
 
-**Marcos Vinícius**
-
-- GitHub: [@marcossesh](https://github.com/marcossesh)
-- Email: marcosviniramos62@gmail.com
-- LinkedIn: [marcossesh](linkedin.com/in/marcossesh)
+Marcos Vinicius
 
 ---
 
-## Desenvolvido para
+**Nota**: Este sistema foi desenvolvido para fins educacionais/demonstrativos. Para uso em produção, considere implementar autenticação, rate limiting adicional e monitoramento robusto.
 
-**AutoU - Desafio Técnico 2025**
+## Suporte
+
+Para dúvidas ou problemas:
+* Abra uma issue no repositório
+* Entre em contato com a equipe de desenvolvimento
+* Consulte a documentação da [API Google Gemini](https://ai.google.dev/docs)
 
 ---
 
-## Licença
-
-Este projeto está sob a licença MIT.
-
----
-
-<div align="center">
-
-**Se este projeto foi útil, deixe uma estrela!**
-
-Feito com Dedicação por [Marcos Vinicius](https://github.com/marcossesh)
-
-</div>
+**Desenvolvido usando FastAPI e Google Gemini**
