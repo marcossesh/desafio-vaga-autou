@@ -188,7 +188,7 @@ class EmailClassifier:
         return None
     
     def classify(self, email_text: str) -> Dict:
-        if not email_text or len(email_text.strip()) < 5:
+        if not email_text or len(email_text.strip()) < 10:
             raise ValueError("O texto do email é muito curto ou vazio para análise.")
         
         if len(email_text.strip()) > 5000:
