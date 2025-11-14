@@ -27,6 +27,10 @@ Sistema inteligente de classificação automática de emails utilizando IA (Goog
 * **HTML5/CSS3**: Interface moderna e responsiva
 * **JavaScript Vanilla**: Manipulação DOM e requisições assíncronas
 
+## Video Demostrativo
+
+[![Video Demonstrativo](https://www.youtube.com/watch?v=8nV4q6Qqn5w)](https://www.youtube.com/watch?v=8nV4q6Qqn5w)
+
 ## 📋 Pré-requisitos
 
 * Python 3.8 ou superior
